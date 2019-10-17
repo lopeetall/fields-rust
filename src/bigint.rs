@@ -58,21 +58,19 @@ impl Bigint {
         // (borrow, difference mod 2^64)
         (b, d)        
     }
-    //create quotient by sqrt function, use instead of add with carry in saome places
+
     pub fn mul_u64_with_carry (left: u64, right: u64) -> (u64, u64) {
-        let leftq = (left / 0x400000000, left % 0x400000000);
-        println!("left: ({:016x},{:016x})", leftq.0, leftq.1);
-        let rightq = (right / 0x400000000, right % 0x400000000);
-        println!("right: ({:016x},{:016x})", rightq.0, rightq.1);
-        let middle = Bigint::add_u64_with_carry(&(leftq.0*rightq.1), &(leftq.1*rightq.0));
-        println!("middle: ({:016x},{:016x})", middle.0, middle.1);
-        let far_right = Bigint::add_u64_with_carry(&(0x400000000*middle.1), &(leftq.1*rightq.1));
-        println!("far_right: ({:016x},{:016x})", far_right.0, far_right.1);
-        let carry = leftq.0*rightq.0 + middle.0 + far_right.0;
-        println!("5");
-        let sum = far_right.1;
-        (carry, sum)
-    }    
+        let sqrt = 0x100000000;
+        let leftq = (left / sqrt, left % sqrt);
+        let rightq = (right / sqrt, right % sqrt);
+        let tmp_middle = Bigint::add_u64_with_carry(&(leftq.0*rightq.1), &(leftq.1*rightq.0));
+        let (big, middle, little) = (leftq.0*rightq.0 + tmp_middle.0, tmp_middle.1, leftq.1*rightq.1);
+        let middle_big = middle / sqrt;
+        let middle_little = middle % sqrt;
+        let (little_big, little_little) = Bigint::add_u64_with_carry(&(middle_little*sqrt), &little);
+
+        (big + middle_big + little_big, little + little_little)
+    }   
 
     pub fn pad (list: &Vec<u64>, n: usize) -> Vec<u64> {
         let mut z = vec![0; n-list.len()];
@@ -115,13 +113,6 @@ impl ops::Add for Bigint {
 impl ops::Mul for Bigint {
     type Output = Self;
 
-    //test with 7 and 14
-/*
-    fn scalar_mult (self, other: u64) -> Bigint {
-        let mut prod: Vec<u64> = vec![0; self.list.len()+1];
-
-    }
-*/
     fn mul (self, other: Self) -> Bigint {
         Bigint {
             list: vec![0],
