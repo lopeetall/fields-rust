@@ -1,15 +1,16 @@
 extern crate rand;
 
 use bigint::Bigint;
-use rand::Rng;
+//use rand::Rng;
 
 fn main () {
        // let mut rng = rand::thread_rng();
+//let max = std::u64::MAX;
+let n1 = Bigint::new(vec![1, 0, 0]);
+let n2 = Bigint::new(vec![1, 0]);
 
-        let n1 = 0xE000000000000000;
-        let n2 = 0x7;
-        println!("{:016x}", n1);
-        println!("{:016x}", n2);
-        let c = Bigint::mul_u64_with_carry(n1, n2);
-        println!("({:016x},{:016x})", c.0, c.1);
+println!("{}", n1);
+println!("{}", n2);
+println!("{}", n1*n2);
+
 }

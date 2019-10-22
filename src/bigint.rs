@@ -1,16 +1,22 @@
+// TO DO 
 
-// TO DO
+// MAKE IT IMPRESSIVE
 
-// don't use functional type shit unless required.
-// I have a LOT to do before I can apply to this job
-// If I have Bigint AND Finite Fields in Rust
-// Or even just Bigint
-// I Can supplement my Python work for the rest
-// 
-// Mult
-// IntDiv
-// Mod
+// Implement:
+// Shift Left **
+// AddAssign **
+// SubAssign **
+// MulAssign **
+// Make Bigint indexable and remove the .lists when necessary **
+// give Bigints a len() function and remove .list.len() when necessary **
+// ---MAke Bigint iterable and remove the .into_iter when necessary (maybe not?)---
 
+// mod
+// mod assign
+// int div
+// int div assign
+
+// DONE?
 
 extern crate hex;
 
@@ -21,17 +27,17 @@ use std::cmp;
 
 #[derive(Debug)]
 pub struct Bigint {
-    list: Vec<u64>,
+    pub list: Vec<u64>,
 }
 
 impl Bigint {
     pub fn new (list: Vec<u64>) -> Bigint {
         Bigint {
-            list: Bigint::depad(list),
+            list: Bigint::depad(&list),
         }
     }
 
-    pub fn add_u64_with_carry (first: &u64, other: &u64) -> (u64, u64) {
+    pub fn add_u64_with_carry (first: &u64, other: &u64) -> Vec<u64> {
         let c: u64;
         let s: u64;
         if first > &(0xFFFFFFFFFFFFFFFF - other) {
@@ -42,10 +48,14 @@ impl Bigint {
             s = first + other;
         }
         // (carry, sum mod 2^64)
-        (c, s)        
+        vec![c, s]        
     }
 
-    pub fn sub_u64_with_borrow (first: &u64, other: &u64) -> (u64, u64) {
+    pub fn len (&self) -> usize {
+        self.list.len()
+    }
+
+    pub fn sub_u64_with_borrow (first: &u64, other: &u64) -> Vec<u64> {
         let b: u64;
         let d: u64;
         if first < other {
@@ -56,21 +66,27 @@ impl Bigint {
             d = first - other;
         }
         // (borrow, difference mod 2^64)
-        (b, d)        
+        vec![b, d]        
     }
 
-    pub fn mul_u64_with_carry (left: u64, right: u64) -> (u64, u64) {
+    pub fn mul_u64_with_carry (left: u64, right: u64) -> Vec<u64> {
         let sqrt = 0x100000000;
-        let leftq = (left / sqrt, left % sqrt);
-        let rightq = (right / sqrt, right % sqrt);
-        let tmp_middle = Bigint::add_u64_with_carry(&(leftq.0*rightq.1), &(leftq.1*rightq.0));
-        let (big, middle, little) = (leftq.0*rightq.0 + tmp_middle.0, tmp_middle.1, leftq.1*rightq.1);
-        let middle_big = middle / sqrt;
-        let middle_little = middle % sqrt;
-        let (little_big, little_little) = Bigint::add_u64_with_carry(&(middle_little*sqrt), &little);
+        let leftq = vec![left / sqrt, left % sqrt];
+        let rightq = vec![right / sqrt, right % sqrt];
+        let tmp_middle = [(leftq[0]*rightq[1]) / sqrt + (leftq[1]*rightq[0]) / sqrt, (leftq[0]*rightq[1]) % sqrt + (leftq[1]*rightq[0]) % sqrt];
+        let (big, middle, little) = (leftq[0]*rightq[0] + tmp_middle[0], tmp_middle[1]*sqrt, leftq[1]*rightq[1]);
+        let littles = Bigint::add_u64_with_carry(&middle, &little);
+        vec![big + littles[0], littles[1]]
+    }  
 
-        (big + middle_big + little_big, little + little_little)
-    }   
+    pub fn mul_by_u64 (&self, other: u64) -> Bigint {
+        let n = self.len();
+        let mut r = Bigint::new(vec![]);
+        for i in (0..n).rev() {
+            r += Bigint::new(Bigint::mul_u64_with_carry(self[i], other)) << n-1-i;
+        }
+        r
+    }
 
     pub fn pad (list: &Vec<u64>, n: usize) -> Vec<u64> {
         let mut z = vec![0; n-list.len()];
@@ -78,56 +94,89 @@ impl Bigint {
         z
     }
 
-    pub fn depad (list: Vec<u64>) -> Vec<u64> {
-        list.into_iter().skip_while(|&x| x == 0).collect::<Vec<u64>>()
+    pub fn depad (list: &Vec<u64>) -> Vec<u64> {
+        // remove leading zeros before creating a new bigint
+        // leaves one zero element if the big int is actually 0
+        // I would love to see a more functional way of doing this
+        let mut r = vec![];
+        let mut sigs_have_begun = false;
+        for i in 0..list.len() {
+            if list[i] != 0 || sigs_have_begun || i == list.len() - 1{
+                sigs_have_begun = true;
+                r.push(list[i]);
+            }
+        }
+        r
     }
 }
 
 impl fmt::Display for Bigint {
     fn fmt (&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s: String = self.list[1..self.list.len()].iter()
+        let s: String = self.list[1..self.len()].iter()
         .map(|x| format!("{:016x}", x))
         .collect::<Vec<String>>()
         .join("");
-        write!(f, "{:x}{}", self.list[0], s)
+        write!(f, "{:x}{}", self[0], s)
     }
 }
 
 impl ops::Add for Bigint {
     type Output = Self;
-
     fn add (self, other: Self) -> Bigint {
-        let sum_length = cmp::max(self.list.len(), other.list.len()) + 1;
+        let sum_length = cmp::max(self.len(), other.len()) + 1;
         let mut sum: Vec<u64> = vec![0; sum_length];
         let l = Bigint::pad(&self.list, sum_length);
         let r = Bigint::pad(&other.list, sum_length);
         for i in (1..(sum_length)).rev() {
             let ac = Bigint::add_u64_with_carry(&l[i], &r[i]);
-            sum[i] += ac.1;
-            sum[i-1] += ac.0; 
+            sum[i] += ac[1];
+            sum[i-1] += ac[0]; 
         }
         Bigint::new(sum)
     }
 }
 
+impl ops::AddAssign for Bigint {
+    fn add_assign (&mut self, other: Self) {
+        let placeholder = &self.list;
+        *self = Bigint::new(placeholder.to_vec()) + other;
+    }
+}
+
+impl ops::Shl<usize> for Bigint {
+    type Output = Self;
+    fn shl (self, n: usize) -> Bigint {
+        let mut r = self.list;
+        r.extend(vec![0; n]);
+        Bigint::new(r)
+    }
+}
+
 impl ops::Mul for Bigint {
     type Output = Self;
-
     fn mul (self, other: Self) -> Bigint {
-        Bigint {
-            list: vec![0],
-        }
+        let n = other.len();
+        let mut r = Bigint::new(vec![]);
+        for i in (0..n).rev() {
+            r += self.mul_by_u64(other[i]) << n-1-i;
+        }    
+        r
+    }
+}
+
+impl ops::MulAssign for Bigint {
+    fn mul_assign (&mut self, other: Self) {
+        let placeholder = &self.list;
+        *self = Bigint::new(placeholder.to_vec()) * other;
     }
 }
 
 impl ops::Sub for Bigint {
     type Output = Self;
     fn sub (self, other: Self) -> Bigint {
-        let n = cmp::max(self.list.len(), other.list.len());
+        let n = cmp::max(self.len(), other.len());
         let mut l = Bigint::pad(&self.list, n);
         let r = Bigint::pad(&other.list, n);
-        println!("{:?}", l);
-        println!("{:?}", r);
         let mut d: Vec<u64> = vec![0; n];
         for i in (0..n).rev() {
             if l[i] < r[i] {
@@ -137,15 +186,27 @@ impl ops::Sub for Bigint {
                 d[i] = l[i] - r[i];
             }
         }
-        println!("{:?}", d);
         Bigint::new(d)
     }
 }
 
-impl cmp::Ord for Bigint {
+impl ops::SubAssign for Bigint {
+    fn sub_assign (&mut self, other: Self) {
+        let placeholder = &self.list;
+        *self = Bigint::new(placeholder.to_vec()) - other;
+    }
+}
 
+impl ops::Index<usize> for Bigint {
+    type Output = u64;
+    fn index (&self, idx: usize) -> &u64 {
+        &self.list[idx]
+    }
+}
+
+impl cmp::Ord for Bigint {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        let n = cmp::max(self.list.len(), other.list.len());
+        let n = cmp::max(self.len(), other.len());
         let l = Bigint::pad(&self.list, n);
         let r = Bigint::pad(&other.list, n);
         let mut i = 0;
