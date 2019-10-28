@@ -1,22 +1,3 @@
-// TO DO 
-
-// MAKE IT IMPRESSIVE
-
-// Implement:
-// ---MAke Bigint iterable and remove the .into_iter when necessary (maybe not?)---
-
-// mod
-// mod assign?
-
-// square?
-
-// mod exp!!! (necessary--actually the big goal)
-
-// int div
-// int div assign
-
-// DONE?
-
 extern crate hex;
 
 use std;
@@ -169,13 +150,6 @@ impl Bigint {
         u >> 4*(15 - index)
     }
 
-    pub fn shift_left (self, n: usize) -> Bigint {
-        let result = vec![hex_digit_of_u64_at_index(self[0], 0)];
-        for i in self {
-            
-        }
-        }
-    }
 
     pub fn mul_by_u64_mod (self, coeff: u64, divisor: Bigint) -> Bigint {
         let hlr = Bigint::same_size_mod(Bigint::new(vec![std::u64::MAX; divisor.len()]), divisor.clone()) + Bigint::one();
