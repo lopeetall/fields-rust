@@ -188,20 +188,26 @@ impl ops::Div for U256 {
         } else {
             let mut d = divisor;
             let mut n = self;
-            let mut res = U256::one();
+            let mut res = U256::zero();
+            let mut i = 0;
             while n > divisor {
+                println!("n:  {}", n);
                 d = divisor << n.len() - divisor.len();
+
                 if n < d {
                     d >>= 1;
                 }
-                res += (U256::one() << n.len() - d.len());
-                println!("{}", res);     
+                println!(" d: {}", d);
+                res += (U256::one() << (n.len() - divisor.len()));   
+                println!(" r: {}", res);  
                 n -= d;
+                i += 1;
             }
         res
         }
     }
 }
+
 
 impl ops::Shl<usize> for U256 {
     type Output = Self;
@@ -214,10 +220,10 @@ impl ops::Shl<usize> for U256 {
         } else {
             let q = n / 64;
             let r = n % 64;
-            let mut result = [0; 4];
-            let mut lt: u64 = 0;
-            let mut rt: u64 = 0;
+            let mut result = self.list;
             if r != 0 {
+                let mut lt: u64 = 0;
+                let mut rt: u64 = 0;
                 for i in (0..4).rev() {
                     rt = self[i] << r;
                     result[i] = rt + lt;

@@ -115,8 +115,6 @@ impl Bigint {
 
     }
 
-
-
     pub fn same_size_quot(num: Bigint, divisor: Bigint) -> Bigint {
         if num.len() != divisor.len() {
             panic!("Number and divisor not the same length for step_mod.");
