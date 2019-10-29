@@ -75,6 +75,32 @@ impl U256 {
         } 
         (U256::new(result), U256::new(borrows))
     }
+
+    pub fn mul_u64_with_carry (left: u64, right: u64) -> (u64, u64) {
+        let sqrt = 0x100000000;
+        let leftq = [left / sqrt, left % sqrt];
+        let rightq = [right / sqrt, right % sqrt];
+        let tmp_middle = [(leftq[0]*rightq[1]) / sqrt + (leftq[1]*rightq[0]) / sqrt, (leftq[0]*rightq[1]) % sqrt + (leftq[1]*rightq[0]) % sqrt];
+        let lower_middle = [tmp_middle[1] / sqrt, tmp_middle[1] % sqrt];
+        let (big, middle, little) = (leftq[0]*rightq[0] + tmp_middle[0] + lower_middle[0], lower_middle[1]*sqrt, leftq[1]*rightq[1]);
+        let littles = middle.overflowing_add(little);
+        if littles.1 {
+            (big + 1, littles.0)
+        } else {
+            (big, littles.0)
+        }
+    }
+
+    pub fn len (self) -> usize {
+        let mut result: usize = 256;
+        let mut i = 0;
+        while self[i] == 0 && i < 3 {
+            i += 1;
+            result -= 64; 
+        }
+        result -= self[i].leading_zeros() as usize;
+        result
+    }
 }
 
 impl ops::Add for U256 {
@@ -113,6 +139,69 @@ impl ops::SubAssign for U256 {
     }
 }
 
+impl ops::Rem for U256 {
+    type Output = U256;
+    fn rem(self, divisor: U256) -> U256 {
+        let mut d = divisor;
+        let mut n = self;
+        if self < divisor {
+            self
+        } else {
+            while n > divisor {
+                d = divisor << n.len() - divisor.len();
+                if n < d {
+                    d >>= 1;
+                }      
+                n -= d;
+            }
+        n
+        }
+    }
+}
+/*
+impl ops::Mul for U256 {
+    type Output = U256;
+    fn mul (self, other: U256) -> U256{
+
+    }
+}
+*/
+
+/*
+impl ops::Pow for U256 {
+    type Output = U256;
+    fn pow (self, power: usize) -> U256 {
+        let mut res = self;
+        for i in 1..power {
+            res *= res;
+        }
+        res
+    }
+}
+*/
+
+impl ops::Div for U256 {
+    type Output = U256;
+    fn div (self, divisor: U256) -> U256 {
+        if self < divisor {
+            U256::zero()
+        } else {
+            let mut d = divisor;
+            let mut n = self;
+            let mut res = U256::one();
+            while n > divisor {
+                d = divisor << n.len() - divisor.len();
+                if n < d {
+                    d >>= 1;
+                }
+                res += (U256::one() << n.len() - d.len());
+                println!("{}", res);     
+                n -= d;
+            }
+        res
+        }
+    }
+}
 
 impl ops::Shl<usize> for U256 {
     type Output = Self;
@@ -120,39 +209,80 @@ impl ops::Shl<usize> for U256 {
         if n > 255 {
             panic!("attempt to shift left past end of U256");
         }
-        let q = n / 64;
-        let r = n % 64;
-        let mut result = [0; 4];
-        let mut lt: u64 = 0;
-        let mut rt: u64 = 0;
-        for i in (0..4).rev() {
-            rt = self[i] << r;
-            result[i] = rt + lt;
-            lt = self[i] >> 64 - r;
+        if n == 0 {
+            self
+        } else {
+            let q = n / 64;
+            let r = n % 64;
+            let mut result = [0; 4];
+            let mut lt: u64 = 0;
+            let mut rt: u64 = 0;
+            if r != 0 {
+                for i in (0..4).rev() {
+                    rt = self[i] << r;
+                    result[i] = rt + lt;
+                    lt = self[i] >> 64 - r;
+                }
+            }
+            for i in 0..4 {
+                if i + q < 4 {
+                    result[i] = result[i+q];
+                } else {
+                    result[i] = 0;
+                }
+            }
+            U256::new(result)
         }
-        U256::new(result)
     }
 }
 
-impl ops::Shl<usize> for U256 {
+impl ops::ShlAssign<usize> for U256 {
+    fn shl_assign (&mut self, n: usize) -> () {
+        let new = self.clone();
+        *self = new << n;
+    }
+}
+
+impl ops::Shr<usize> for U256 {
     type Output = Self;
     fn shr (self, n: usize) -> U256 {
         if n > 255 {
             panic!("attempt to shift right past end of U256");
         }
-        let q = n / 64;
-        let r = n % 64;
-        let mut result = [0; 4];
-        let mut lt: u64 = 0;
-        let mut rt: u64 = 0;
-        for i in 0..4 {
-            rt = self[i] << r;
-            result[i] = rt + lt;
-            lt = self[i] >> 64 - r;
-        }
+        if n == 0 {
+            self
+        } else {
+            let q = n / 64;
+            let r = n % 64;
+            let mut result = [0; 4];
+            let mut lt: u64 = 0;
+            let mut rt: u64 = 0;
+            if r != 0 {
+                for i in 0..4 {
+                    lt = self[i] >> r;
+                    result[i] = rt + lt;
+                    rt = self[i] <<  64 - r;
+                }
+            }
+            for i in (0..4).rev() {
+                if i >= q {
+                    result[i] = result[i-q];
+                } else {
+                    result[i] = 0;
+                }
+            }
         U256::new(result)
+        }
     }
 }
+
+impl ops::ShrAssign<usize> for U256 {
+    fn shr_assign (&mut self, n: usize) -> () {
+        let new = self.clone();
+        *self = new >> n;
+    }
+}
+
 
 
 impl fmt::Display for U256 {
