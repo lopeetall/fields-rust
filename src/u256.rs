@@ -33,6 +33,10 @@ impl U256 {
         U256::new([std::u64::MAX; 4])
     }
 
+    pub fn sqrt () -> U256 {
+        U256::new([0x0,0x1,0x0,0x0])
+    }
+
     pub fn rand () -> U256 {
         let mut rng = rand::thread_rng();
         let mut result: [u64; 4] = [0; 4];
@@ -89,6 +93,80 @@ impl U256 {
         } else {
             (big, littles.0)
         }
+    }
+/*
+    pub fn recursing_mul (self, other: U256) -> (U256, U256) {
+        let mut prod = [0; 8];
+            for i in (0..4).rev() {
+                for j in (0..4).rev() {
+                    let mc = U256::mul_u64_with_carry(self[i], other[j]);
+                    let ac1 = overflowing_add(prod[i+j+1], mc.1);
+                    let ac2 = overflowing_add(prod[i+j], mc.0);
+
+                    prod[i+j+1] += ac1.0;
+                    prod[i+j] += ac1.1 as u64;
+                    prod[i+j] += ac2.0;
+                    prod[i+j-1] += ac2.1 as u64;
+                }
+            }
+        (U256::one(), U256::one())
+    }
+*/
+
+    pub fn low_mul (self, other: U256) -> U256 {
+        let mut p = [(0,0); 4];
+        let mut res = [0; 4];
+        let mut car = [0; 4];
+        for i in (2..4).rev() {
+            for j in (2..4).rev() {
+                p[i] = U256::mul_u64_with_carry(self[i] , other[j]);
+                res[i + j - 3] = p[i].1;
+                car[i + j - 4] = p[i].0;
+            }
+        }
+        U256::new(res) + U256::new(car)
+    }
+
+    pub fn left_mid_mul (self, other: U256) -> U256 {
+        let mut p = [(0,0); 4];
+        let mut res = [0; 4];
+        let mut car = [0; 4];
+        for i in (2..4).rev() {
+            for j in (0..2).rev() {
+                p[i] = U256::mul_u64_with_carry(self[i] , other[j]);
+                res[i + j - 1] = p[i].1;
+                car[i + j - 2] = p[i].0;
+            }
+        }
+        U256::new(res) + U256::new(car)
+    }
+
+    pub fn right_mid_mul (self, other: U256) -> U256 {
+        let mut p = [(0,0); 4];
+        let mut res = [0; 4];
+        let mut car = [0; 4];
+        for i in (0..2).rev() {
+            for j in (2..4).rev() {
+                p[i] = U256::mul_u64_with_carry(self[i] , other[j]);
+                res[i + j - 1] = p[i].1;
+                car[i + j - 2] = p[i].0;
+            }
+        }
+        U256::new(res) + U256::new(car)
+    }
+
+    pub fn hi_mul (self, other: U256) -> U256 {
+        let mut p = [(0,0); 4];
+        let mut res = [0; 4];
+        let mut car = [0; 4];
+        for i in (0..2).rev() {
+            for j in (0..2).rev() {
+                p[i] = U256::mul_u64_with_carry(self[i] , other[j]);
+                res[i + j + 1] = p[i].1;
+                car[i + j] = p[i].0;
+            }
+        }
+        U256::new(res) + U256::new(car)
     }
 
     pub fn len (self) -> usize {
@@ -158,32 +236,13 @@ impl ops::Rem for U256 {
         }
     }
 }
-/*
-impl ops::Mul for U256 {
-    type Output = U256;
-    fn mul (self, other: U256) -> U256{
-
-    }
-}
-*/
-
-/*
-impl ops::Pow for U256 {
-    type Output = U256;
-    fn pow (self, power: usize) -> U256 {
-        let mut res = self;
-        for i in 1..power {
-            res *= res;
-        }
-        res
-    }
-}
-*/
 
 impl ops::Div for U256 {
     type Output = U256;
     fn div (self, divisor: U256) -> U256 {
-        if self < divisor {
+        if divisor == U256::zero() {
+            panic!("Attempt to divide by zero in U256");
+        } else if self < divisor {
             U256::zero()
         } else {
             let mut d = divisor;
@@ -191,15 +250,12 @@ impl ops::Div for U256 {
             let mut res = U256::zero();
             let mut i = 0;
             while n > divisor {
-                println!("n:  {}", n);
-                d = divisor << n.len() - divisor.len();
-
-                if n < d {
-                    d >>= 1;
+                let mut s = n.len() - divisor.len();
+                if n < divisor << s {
+                    s -= 1;
                 }
-                println!(" d: {}", d);
-                res += (U256::one() << (n.len() - divisor.len()));   
-                println!(" r: {}", res);  
+                d = divisor << s;
+                res += U256::one() << s;    
                 n -= d;
                 i += 1;
             }
@@ -208,6 +264,12 @@ impl ops::Div for U256 {
     }
 }
 
+impl ops::Mul for U256 {
+    type Output = (Self, Self);
+    fn mul (self, other: Self) -> (U256, U256) {
+        (U256::one(), U256::one())
+    }
+}
 
 impl ops::Shl<usize> for U256 {
     type Output = Self;
@@ -260,14 +322,14 @@ impl ops::Shr<usize> for U256 {
         } else {
             let q = n / 64;
             let r = n % 64;
-            let mut result = [0; 4];
-            let mut lt: u64 = 0;
-            let mut rt: u64 = 0;
+            let mut result = self.list;
             if r != 0 {
+                let mut lt: u64 = 0;
+                let mut rt: u64 = 0;
                 for i in 0..4 {
-                    lt = self[i] >> r;
+                    rt = self[i] >> r;
                     result[i] = rt + lt;
-                    rt = self[i] <<  64 - r;
+                    lt = self[i] <<  64 - r;
                 }
             }
             for i in (0..4).rev() {
