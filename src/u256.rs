@@ -12,8 +12,6 @@ pub struct U256 {
     pub list: [u64; 4],
 }
 
-
-
 impl U256 {
     pub fn new (list: [u64; 4]) -> U256 {
         U256 {
@@ -42,21 +40,27 @@ impl U256 {
         U256::new(result)
     }
 
-    pub fn recursing_add (left: U256, right: U256) -> (U256, U256) {
+    pub fn recursing_add (left: U256, right: U256, divisor: U256) -> (U256, U256, U256) {
+        let hlr = U256::max() % divisor + U256::one();
         let mut result = [0; 4];
         let mut carries = [0; 4];
+        let mut overflow = false;
         for i in (0..4).rev() {
             let oa = left[i].overflowing_add(right[i]);
             result[i] = oa.0;
             if oa.1 {
                 if i == 0 {
-                    panic!("attempt to add U256 with overflow");
+                    overflow = true;
                 } else {
                     carries[i-1] += 1;
                 }
             }
         } 
-        (U256::new(result), U256::new(carries))
+        if overflow {
+            (U256::new(result) + hlr, U256::new(carries), divisor)
+        } else {
+            (U256::new(result), U256::new(carries), divisor)
+        }
     }
 
     pub fn recursing_sub (left: U256, right: U256) -> (U256, U256) {
@@ -158,27 +162,6 @@ impl ops::Rem for U256 {
         }
     }
 }
-/*
-impl ops::Mul for U256 {
-    type Output = U256;
-    fn mul (self, other: U256) -> U256{
-
-    }
-}
-*/
-
-/*
-impl ops::Pow for U256 {
-    type Output = U256;
-    fn pow (self, power: usize) -> U256 {
-        let mut res = self;
-        for i in 1..power {
-            res *= res;
-        }
-        res
-    }
-}
-*/
 
 impl ops::Div for U256 {
     type Output = U256;
@@ -207,7 +190,6 @@ impl ops::Div for U256 {
         }
     }
 }
-
 
 impl ops::Shl<usize> for U256 {
     type Output = Self;
@@ -288,8 +270,6 @@ impl ops::ShrAssign<usize> for U256 {
         *self = new >> n;
     }
 }
-
-
 
 impl fmt::Display for U256 {
     fn fmt (&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
