@@ -15,6 +15,6 @@ rand = "0.4"
 #path = "src/bigint.rs"
 
 [lib]
-name = "u256"
-path = "src/u256.rs"
+name = "fields"
+path = "src/fields.rs"
 

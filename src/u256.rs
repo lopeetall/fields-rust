@@ -10,42 +10,60 @@ use rand::Rng;
 #[derive(Debug, Copy, Clone)]
 pub struct U256 {
     pub list: [u64; 4],
+    pub divisor: Some(U256),
 }
 
 impl U256 {
-    pub fn new (list: [u64; 4]) -> U256 {
-        U256 {
-            list,
+    pub fn new (list: [u64; 4], divisor: Some(U256)) -> U256 {
+        if let Some(d) = divisor {
+            U256 {
+                list,
+                divisor: d,
+            }
+        } else {
+            U256 {
+                list,
+                divisor: None,
+            }
         }
     }
 
-    pub fn zero () -> U256 {
-        U256::new([0; 4])
+    pub fn zero (divisor) -> U256 {
+        U256::new([0; 4], divisor)
     }
 
-    pub fn one () -> U256 {
-        U256::new([0,0,0,1])
+    pub fn one (divisor) -> U256 {
+        U256::new([0,0,0,1], divisor)
     }
 
-    pub fn max () -> U256 {
-        U256::new([std::u64::MAX; 4])
+    pub fn max (divisor) -> U256 {
+        U256::new([std::u64::MAX; 4], divisor)
     }
 
-    pub fn sqrt () -> U256 {
-        U256::new([0x0,0x1,0x0,0x0])
+    pub fn sqrt (divisor) -> U256 {
+        U256::new([0x0,0x1,0x0,0x0], divisor)
     }
 
-    pub fn rand () -> U256 {
+    pub fn rand (divisor) -> U256 {
         let mut rng = rand::thread_rng();
         let mut result: [u64; 4] = [0; 4];
         for i in 0..4 {
             result[i] = rng.gen();
         }
-        U256::new(result)
+        U256::new(result, divisor)
     }
 
-    pub fn recursing_add (left: U256, right: U256, divisor: U256) -> (U256, U256, U256) {
-        let hlr = U256::max() % divisor + U256::one();
+    pub fn check_divisors (left: U256, right: U256) -> () {
+        if let Some(ld) = left.divisor && let Some(rd) = right.divisor {
+            if ld != rd {
+                panic!("Conflicting divisors");
+            }
+        }
+    }
+
+    pub fn recursing_add (left: U256, right: U256) -> (U256, U256) {
+        check_divisors(left, right);
+        let hlr = U256::max() % left.divisor + U256::one();
         let mut result = [0; 4];
         let mut carries = [0; 4];
         let mut overflow = false;
@@ -120,18 +138,6 @@ impl U256 {
         }
         result -= self[i].leading_zeros() as usize;
         result
-    }
-
-    pub fn mul_mod (self, other: Self, divisor: Self) -> U256 {
-        let hlr = (U256::max() % divisor) + 1;
-        let mut res = U256::zero();
-        //for i in (0..4).rev() {
-            //let uprod = self * other[i];
-            //res += uprod.1 % divisor;
-            //let hi_par = uprod.0
-            //res += mul_mod(hlr * uprod.0)
-        //}
-        U256::zero()
     }
 }
 
@@ -230,8 +236,6 @@ impl ops::Div for U256 {
     }
 }
 
-<<<<<<< HEAD
-=======
 impl ops::Mul<u64> for U256 {
     type Output = (u64, Self);
     fn mul (self, other: u64) -> (u64, U256) {
@@ -250,7 +254,6 @@ impl ops::Mul<u64> for U256 {
     }
 }
 
->>>>>>> ca128b75fe63770320f1a2de2e4808da01260b16
 impl ops::Shl<usize> for U256 {
     type Output = Self;
     fn shl (self, n: usize) -> U256 {
