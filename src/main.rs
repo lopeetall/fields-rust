@@ -15,9 +15,7 @@ let p1 = FieldElement::new(n1, f);
 let p2 = FieldElement::new(n2, f);
 
 println!("p1:     {}", p1);
-println!("n2:     {}", n2);
-println!("d:      {}", d);
-println!("p1_inv: {}", p1.inv());
-println!("1:      {}", p1*p1.inv());
+println!("p2:     {}", p2);
+println!("p1/p2:  {}", p1/p2);
 
 }

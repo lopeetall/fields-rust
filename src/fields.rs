@@ -429,25 +429,10 @@ impl PrimeField {
 
     pub fn overflow_reduce_limb_shift (self, lower: U256, n: usize) -> U256 {
         let mut result = lower;
-        for i in 0..n {
+        for _i in 0..n {
             result = self.overflow_reduce_u64((result[0], result << 64));
         }
         result
-    }
-
-    pub fn overflow_reduce_u256 (self, upper: U256, lower: U256) -> U256 {
-        let mut ru = upper;
-        println!("{}", ru);
-        for i in 0..4 {
-            ru = self.overflow_reduce_limb_shift(ru, 1);
-                    println!("{}", ru);
-        }
-        self.overflow_reduce_bool(
-            U256::overflowing_add(
-                ru,
-                lower,
-            ),
-        )
     }
 }
 
@@ -552,6 +537,13 @@ impl ops::Mul for FieldElement {
 impl ops::MulAssign for FieldElement {
     fn mul_assign (&mut self, other: FieldElement) {
         *self = self.clone() * other 
+    }
+}
+
+impl ops::Div for FieldElement {
+    type Output = Self;
+    fn div (self, divisor: FieldElement) -> FieldElement {
+        self * divisor.inv()
     }
 }
 
