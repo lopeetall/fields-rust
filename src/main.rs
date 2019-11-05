@@ -1,5 +1,7 @@
 extern crate rand;
 
+mod fields;
+
 use fields::U256;
 use fields::PrimeField;
 use fields::FieldElement;

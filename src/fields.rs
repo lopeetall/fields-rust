@@ -1,5 +1,3 @@
-extern crate hex;
-
 use std;
 use std::fmt;
 use std::ops;
@@ -362,23 +360,23 @@ impl PrimeField {
         }
     }
 
-    pub fn rand (self) -> FieldElement {
-        FieldElement::new(U256::rand(), self)
+    pub fn rand (self) -> PrimeFieldElement {
+        PrimeFieldElement::new(U256::rand(), self)
     }
 
-    pub fn zero (self) -> FieldElement {
-        FieldElement::new(U256::zero(), self)
+    pub fn zero (self) -> PrimeFieldElement {
+        PrimeFieldElement::new(U256::zero(), self)
     }
 
-    pub fn one (self) -> FieldElement {
-        FieldElement::new(U256::one(), self)
+    pub fn one (self) -> PrimeFieldElement {
+        PrimeFieldElement::new(U256::one(), self)
     }
 
-    pub fn hlr (self) -> FieldElement {
+    pub fn hlr (self) -> PrimeFieldElement {
         if self.prime < U256::max() {
-            FieldElement::new(U256::max(), self) + self.one()
+            PrimeFieldElement::new(U256::max(), self) + self.one()
         } else {
-            FieldElement::new(U256::one(), self)
+            PrimeFieldElement::new(U256::one(), self)
         }
     }
 
@@ -445,24 +443,24 @@ impl fmt::Display for PrimeField {
 /*-----------------------------------------------------------------*/
 
 #[derive(Debug, Copy, Clone)]
-pub struct FieldElement {
+pub struct PrimeFieldElement {
     pub rep: U256,
     pub field: PrimeField,
 }
 
-impl FieldElement {
-    pub fn new (r: U256, field: PrimeField) -> FieldElement {
-        FieldElement {
+impl PrimeFieldElement {
+    pub fn new (r: U256, field: PrimeField) -> PrimeFieldElement {
+        PrimeFieldElement {
             rep: r % field.prime,
             field,
         }
     }
 
-    pub fn square (self) -> FieldElement {
+    pub fn square (self) -> PrimeFieldElement {
         self*self
     }
 
-    pub fn pow (self, e: U256) -> FieldElement {
+    pub fn pow (self, e: U256) -> PrimeFieldElement {
         let mut p = self.field.one();
         for i in 0..256 {
             if e.bit_at(i) {
@@ -474,21 +472,21 @@ impl FieldElement {
         p
     }
 
-    pub fn inv (self) -> FieldElement {
+    pub fn inv (self) -> PrimeFieldElement {
         self.pow(self.field.prime - 2)
     }
 }
 
-impl fmt::Display for FieldElement {
+impl fmt::Display for PrimeFieldElement {
     fn fmt (&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.rep)
     }
 }
 
-impl ops::Add for FieldElement {
+impl ops::Add for PrimeFieldElement {
     type Output = Self;
-    fn add (self, other: FieldElement) -> FieldElement {
-        FieldElement::new(
+    fn add (self, other: PrimeFieldElement) -> PrimeFieldElement {
+        PrimeFieldElement::new(
             self.field.overflow_reduce_bool(
                 U256::overflowing_add(
                     self.rep,
@@ -500,10 +498,10 @@ impl ops::Add for FieldElement {
     }
 }
 
-impl ops::Sub for FieldElement {
+impl ops::Sub for PrimeFieldElement {
     type Output = Self;
-    fn sub (self, other: FieldElement) -> FieldElement {
-        FieldElement::new(
+    fn sub (self, other: PrimeFieldElement) -> PrimeFieldElement {
+        PrimeFieldElement::new(
             self.field.underflow_reduce_bool(
                 U256::underflowing_sub(
                     self.rep,
@@ -515,12 +513,12 @@ impl ops::Sub for FieldElement {
     }
 }
 
-impl ops::Mul for FieldElement {
+impl ops::Mul for PrimeFieldElement {
     type Output = Self;
-    fn mul (self, other: FieldElement) -> FieldElement {
+    fn mul (self, other: PrimeFieldElement) -> PrimeFieldElement {
         let mut result = self.field.zero();
         for i in (0..4).rev() {
-            result = result + FieldElement::new(
+            result = result + PrimeFieldElement::new(
                 self.field.overflow_reduce_limb_shift(
                     self.field.overflow_reduce_u64(
                         U256::overflowing_mul_u64 (self.rep[i], other.rep)
@@ -534,17 +532,15 @@ impl ops::Mul for FieldElement {
     }
 }
 
-impl ops::MulAssign for FieldElement {
-    fn mul_assign (&mut self, other: FieldElement) {
+impl ops::MulAssign for PrimeFieldElement {
+    fn mul_assign (&mut self, other: PrimeFieldElement) {
         *self = self.clone() * other 
     }
 }
 
-impl ops::Div for FieldElement {
+impl ops::Div for PrimeFieldElement {
     type Output = Self;
-    fn div (self, divisor: FieldElement) -> FieldElement {
+    fn div (self, divisor: PrimeFieldElement) -> PrimeFieldElement {
         self * divisor.inv()
     }
 }
-
-/*-----------------------------------------------------------------*/
