@@ -4,18 +4,12 @@
 name = "fields-rust"
 version = "0.1.0"
 dependencies = [
- "hex 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "hex"
-version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -77,7 +71,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum fuchsia-cprng 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
-"checksum hex 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "023b39be39e3a2da62a94feb433e91e8bcd37676fbc8bea371daf52b7a769a3e"
 "checksum libc 0.2.64 (registry+https://github.com/rust-lang/crates.io-index)" = "74dfca3d9957906e8d1e6a0b641dc9a59848e793f1da2165889fd4f62d10d79c"
 "checksum rand 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
 "checksum rand_core 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6fdeb83b075e8266dcc8762c22776f6877a63111121f5f8c7411e5be7eed4b"
