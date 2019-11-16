@@ -520,6 +520,13 @@ impl ops::Sub for PrimeFieldElement {
     }
 }
 
+impl ops::SubAssign for PrimeFieldElement {
+    fn sub_assign (&mut self, other: Self) {
+        let sc = self.clone();
+        *self = sc - other;
+    }
+}
+
 impl ops::Mul for PrimeFieldElement {
     type Output = Self;
     fn mul (self, other: PrimeFieldElement) -> PrimeFieldElement {
@@ -554,7 +561,7 @@ impl ops::Div for PrimeFieldElement {
 
 /*--------------------------------------------------------------*/
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct QuadraticExtensionField {
     subfield: PrimeField,
     polynomial: [PrimeFieldElement; 3],
@@ -580,7 +587,7 @@ impl QuadraticExtensionField {
         QuadraticExtensionFieldElement::new(self, [self.subfield.rand(), self.subfield.rand(), self.subfield.rand()])
     }
 
-    pub fn poly_long_mul(self, left: QuadraticExtensionFieldElement, right: QuadraticExtensionFieldElement) -> QuadraticExtensionFieldElement {
+    pub fn poly_long_mul(self, left: QuadraticExtensionFieldElement, right: QuadraticExtensionFieldElement) -> [PrimeFieldElement; 5] {
         let mut current = [self.subfield.zero(); 5];
         let mut result = [self.subfield.zero(); 5];
         for i in 0..3 {
@@ -588,25 +595,26 @@ impl QuadraticExtensionField {
                 result[j+i] += right[i]*left[j]
             }
         }
-        println!("{:?}", result);
-        self.one()
+        result
     }
 
-    pub fn poly_mod (self, poly: [PrimeFieldElement], divisor: QuadraticExtensionFieldElement) -> QuadraticExtensionFieldElement {
-        let quotient = [self.subfield.zero(); 3];
+    pub fn double_poly_mod (self, poly: [PrimeFieldElement; 5], divisor: QuadraticExtensionFieldElement) -> QuadraticExtensionFieldElement {
+        let mut quotient = [self.subfield.zero(); 3];
+        let mut remainder = poly;
         for i in 0..3 {
-            quotient[i] = poly[i] / divisor[i];
-
+            quotient[i] = remainder[i] / divisor[0];
+            for j in i..i+3 {
+                remainder[j] -= quotient[i] * divisor[i];
+            }
         }
-        self.one()
+        QuadraticExtensionFieldElement::new(self, remainder[2 .. 5])
     }
-
 }
 
 
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 
 pub struct QuadraticExtensionFieldElement {
     field: QuadraticExtensionField,
@@ -650,7 +658,39 @@ impl ops::Add for QuadraticExtensionFieldElement {
     }
 }
 
-impl ops::Mul<FiniteFieldElement> for QuadraticExtensionFieldElement {
-    
+impl ops::AddAssign for QuadraticExtensionFieldElement {
+    fn add_assign (&mut self, other: Self) {
+        let sc = self.clone();
+        *self = sc + other;
+    }
+}
+
+impl ops::Sub for QuadraticExtensionFieldElement {
+    type Output = Self;
+    fn sub (self, other: Self) -> Self {
+        let mut result = [self.field.subfield.zero(); 3];
+        for i in 0..3 {
+            result[i] = self[i] - other[i];
+        }
+        QuadraticExtensionFieldElement::new(self.field, result)
+    }
+}
+
+impl ops::SubAssign for QuadraticExtensionFieldElement {
+    fn sub_assign (&mut self, other: Self) {
+        let sc = self.clone();
+        *self = sc - other;
+    }
+}
+
+impl ops::Mul<PrimeFieldElement> for QuadraticExtensionFieldElement {
+    type Output = QuadraticExtensionFieldElement;
+    fn mul (self, other: PrimeFieldElement) -> QuadraticExtensionFieldElement {
+        let mut result = self.coeffs;
+        for i in 0..3 {
+            result[i] *= other;
+        }
+        QuadraticExtensionFieldElement::new(self.field, result)
+    }
 }
 

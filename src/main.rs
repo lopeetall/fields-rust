@@ -29,9 +29,10 @@ let five = two + two + f.one();
 
 let r1 = QuadraticExtensionFieldElement::new(q, [five, two, f.one()]);
 let r2 = QuadraticExtensionFieldElement::new(q, [two, f.one(), f.one()]);
+let dr = QuadraticExtensionFieldElement::new(q, [two, two, two]);
 
-let product = q.poly_long_mul(r1, r2);
+let product = q.double_poly_mod(q.poly_long_mul(r1, r2), dr);
 
-//println!("{:?}", product)
+println!("{:?}", product)
 
 }
